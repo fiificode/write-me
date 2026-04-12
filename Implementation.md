@@ -250,7 +250,7 @@ export function useNotes() {
     const token = await getToken({ template: 'supabase' });
     if (!token) return null;
     const supabase = createClerkSupabaseClient(token);
-    
+
     const { data, error } = await supabase
       .from('notes')
       .insert({ user_id: userId, folder_id: folderId ?? null, title: 'Untitled' })
@@ -360,7 +360,7 @@ export function useFolders() {
     const token = await getToken({ template: 'supabase' });
     if (!token) return null;
     const supabase = createClerkSupabaseClient(token);
-    
+
     const { data } = await supabase
       .from('folders')
       .insert({ user_id: userId, name, icon })
@@ -596,7 +596,7 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-56 h-full bg-[#f7f7f5] border-r border-gray-200 flex flex-col py-4 flex-shrink-0">
+    <aside className="w-56 h-full bg-[#f7f7f5] border-r border-gray-200 flex flex-col py-4 shrink-0">
       <div className="px-3 mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -730,7 +730,7 @@ export function NoteListPanel() {
   const label = activeView.startsWith('folder:') ? 'Folder' : VIEW_LABELS[activeView] ?? 'Notes';
 
   return (
-    <div className="w-72 flex-shrink-0 border-r border-gray-200 flex flex-col h-full bg-white">
+    <div className="w-72 shrink-0 border-r border-gray-200 flex flex-col h-full bg-white">
       <div className="px-4 h-14 flex items-center justify-between border-b border-gray-100">
         <h2 className="font-semibold text-gray-900 text-[15px] truncate">
           {label} <span className="font-normal text-gray-400 text-sm ml-1">({notes.length})</span>

@@ -3,7 +3,10 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import { StarterKit } from "@tiptap/starter-kit"
 import { Placeholder } from "@tiptap/extension-placeholder"
 import { Link } from "@tiptap/extension-link"
-import { Image } from "@tiptap/extension-image"
+import { Image as BaseImage } from "@tiptap/extension-image"
+
+/** draggable + resize handles fight ProseMirror / Safari; keep resize only. */
+const Image = BaseImage.extend({ draggable: false })
 import { Table } from "@tiptap/extension-table"
 import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
@@ -52,6 +55,8 @@ export function NoteEditor({ note }: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        // Avoid two Link extensions (StarterKit + below); duplicates break setLink/toggleLink.
+        link: false,
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
@@ -71,8 +76,16 @@ export function NoteEditor({ note }: Props) {
         },
       }),
       Image.configure({
+        allowBase64: true,
+        resize: {
+          enabled: true,
+          minWidth: 64,
+          minHeight: 64,
+          alwaysPreserveAspectRatio: true,
+        },
         HTMLAttributes: {
-          class: "rounded-lg max-w-full h-auto",
+          class: "rounded-lg max-w-full",
+          draggable: "false",
         },
       }),
       Table.configure({
