@@ -3,6 +3,12 @@
 ## Project Overview
 A clean, Notion-inspired notes application built with Next.js 14 (App Router), Zustand for client state, Shadcn UI + Tailwind CSS for the interface, and Supabase for persistence.
 
+### Key Features
+- **Tiptap-based Editor**: Rich text editing with auto-save.
+- **Media Support**: Easily insert **Images** and **Links** via the toolbar.
+- **Organization**: Nested folders and pinning for important notes.
+- **Privacy**: Clerk-powered auth with Supabase RLS policies.
+
 ---
 
 ## Tech Stack
@@ -33,15 +39,14 @@ writeup/
 │       └── [id]/page.tsx           # Note editor view
 ├── components/
 │   ├── sidebar/
-│   │   ├── Sidebar.tsx             # Left nav panel
-│   │   ├── FolderList.tsx
-│   │   └── NavItem.tsx
+│   │   └── Sidebar.tsx             # Nav + Search + Folders
 │   ├── notes/
-│   │   ├── NoteList.tsx            # Middle panel
-│   │   ├── NoteCard.tsx
-│   │   └── NoteEditor.tsx          # Right panel (Tiptap)
+│   │   ├── NoteListPanel.tsx       # Filtered note list + New Note
+│   │   ├── NoteCard.tsx            # Note summary card
+│   │   ├── NoteEditor.tsx          # Main editor layout
+│   │   └── EditorHeader.tsx        # Note Title, Pin, Delete
 │   ├── editor/
-│   │   ├── EditorToolbar.tsx
+│   │   ├── EditorToolbar.tsx       # Tiptap formatting
 │   │   └── extensions.ts           # Tiptap extensions config
 │   └── ui/                         # Shadcn components
 ├── store/
@@ -404,6 +409,7 @@ export function NoteEditor({ note }: Props) {
       StarterKit,
       Placeholder.configure({ placeholder: 'Start writing…' }),
     ],
+    immediatelyRender: false,
     content: note.content ?? '',
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();

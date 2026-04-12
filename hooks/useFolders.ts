@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { createClerkSupabaseClient } from '@/lib/supabase/client';
 import { useFoldersStore } from '@/store/useFoldersStore';
 import { Folder } from '@/types';
+import { toast } from 'sonner';
 
 export function useFolders() {
   const { getToken, userId } = useAuth();
@@ -31,7 +32,10 @@ export function useFolders() {
       .insert({ user_id: userId, name, icon })
       .select()
       .single();
-    if (data) addFolder(data as Folder);
+    if (data) {
+      addFolder(data as Folder);
+      toast.success('Folder created');
+    }
     return data as Folder | null;
   }
 
@@ -40,7 +44,9 @@ export function useFolders() {
     const token = await getToken({ template: 'supabase' });
     if (!token) return;
     const supabase = createClerkSupabaseClient(token);
-    await supabase.from('folders').delete().eq('id', id);
+    const { error } = await supabase.from('folders').delete().eq('id', id);
+    if (!error) toast.success('Folder deleted');
+    else toast.error('Failed to delete folder');
   }
 
   return { folders, createFolder, deleteFolder };

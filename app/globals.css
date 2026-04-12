@@ -186,3 +186,26 @@
 .writeup-editor em {
   font-style: italic;
 }
+
+.writeup-editor a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.writeup-editor a:hover {
+  color: #1d4ed8;
+}
+
+.writeup-editor img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+.writeup-editor img.ProseMirror-selectednode {
+  outline: 3px solid #3b82f6;
+}

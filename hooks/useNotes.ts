@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { createClerkSupabaseClient } from '@/lib/supabase/client';
 import { useNotesStore } from '@/store/useNotesStore';
 import { Note } from '@/types';
+import { toast } from 'sonner';
 
 export function useNotes() {
   const { getToken, userId } = useAuth();
@@ -38,6 +39,7 @@ export function useNotes() {
       .single();
     if (data && !error) {
       addNote(data as Note);
+      toast.success('Note created');
       return data as Note;
     }
     return null;
@@ -63,19 +65,25 @@ export function useNotes() {
     const token = await getToken({ template: 'supabase' });
     if (!token) return;
     const supabase = createClerkSupabaseClient(token);
-    await supabase.from('notes').delete().eq('id', id);
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (!error) toast.success('Note deleted forever');
+    else toast.error('Failed to delete note');
   }
 
   async function togglePin(note: Note) {
-    await saveNote(note.id, { is_pinned: !note.is_pinned });
+    const newPinStatus = !note.is_pinned;
+    await saveNote(note.id, { is_pinned: newPinStatus });
+    toast.success(newPinStatus ? 'Note pinned' : 'Note unpinned');
   }
 
   async function trashNote(id: string) {
     await saveNote(id, { is_trashed: true });
+    toast.success('Note moved to trash');
   }
 
   async function restoreNote(id: string) {
     await saveNote(id, { is_trashed: false });
+    toast.success('Note restored');
   }
 
   const filteredNotes = notes

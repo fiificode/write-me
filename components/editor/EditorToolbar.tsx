@@ -1,6 +1,6 @@
 'use client';
 import { Editor } from '@tiptap/react';
-import { Bold, Italic, List, ListOrdered, Undo, Redo } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, Undo, Redo, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props { editor: Editor | null; }
@@ -36,6 +36,23 @@ export function EditorToolbar({ editor }: Props) {
 
   const Sep = () => <div className="w-px h-5 bg-gray-200 mx-0.5 self-center" />;
 
+  const setLink = () => {
+    const url = window.prompt('URL');
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  const addImage = () => {
+    const url = window.prompt('Image URL');
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
   return (
     <div className="flex items-center gap-0.5 px-4 py-2 border-b border-gray-100 bg-white">
       <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} title="Heading 1">H1</Btn>
@@ -47,6 +64,9 @@ export function EditorToolbar({ editor }: Props) {
       <Sep />
       <Btn onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} title="Bullet list"><List className="w-3.5 h-3.5" /></Btn>
       <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} title="Numbered list"><ListOrdered className="w-3.5 h-3.5" /></Btn>
+      <Sep />
+      <Btn onClick={setLink} isActive={editor.isActive('link')} title="Link"><LinkIcon className="w-3.5 h-3.5" /></Btn>
+      <Btn onClick={addImage} title="Image"><ImageIcon className="w-3.5 h-3.5" /></Btn>
       <Sep />
       <Btn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo"><Undo className="w-3.5 h-3.5" /></Btn>
       <Btn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo"><Redo className="w-3.5 h-3.5" /></Btn>

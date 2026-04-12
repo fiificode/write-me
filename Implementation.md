@@ -258,6 +258,7 @@ export function useNotes() {
       .single();
     if (data && !error) {
       addNote(data as Note);
+      toast.success('Note created');
       return data as Note;
     }
     return null;
@@ -283,19 +284,25 @@ export function useNotes() {
     const token = await getToken({ template: 'supabase' });
     if (!token) return;
     const supabase = createClerkSupabaseClient(token);
-    await supabase.from('notes').delete().eq('id', id);
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (!error) toast.success('Note deleted forever');
+    else toast.error('Failed to delete note');
   }
 
   async function togglePin(note: Note) {
-    await saveNote(note.id, { is_pinned: !note.is_pinned });
+    const newPinStatus = !note.is_pinned;
+    await saveNote(note.id, { is_pinned: newPinStatus });
+    toast.success(newPinStatus ? 'Note pinned' : 'Note unpinned');
   }
 
   async function trashNote(id: string) {
     await saveNote(id, { is_trashed: true });
+    toast.success('Note moved to trash');
   }
 
   async function restoreNote(id: string) {
     await saveNote(id, { is_trashed: false });
+    toast.success('Note restored');
   }
 
   const filteredNotes = notes
@@ -368,7 +375,9 @@ export function useFolders() {
     const token = await getToken({ template: 'supabase' });
     if (!token) return;
     const supabase = createClerkSupabaseClient(token);
-    await supabase.from('folders').delete().eq('id', id);
+    const { error } = await supabase.from('folders').delete().eq('id', id);
+    if (!error) toast.success('Folder deleted');
+    else toast.error('Failed to delete folder');
   }
 
   return { folders, createFolder, deleteFolder };
@@ -383,6 +392,8 @@ export function useFolders() {
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -396,7 +407,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={inter.className}>{children}</body>
+        <body className={inter.className}>
+          <TooltipProvider>
+            {children}
+            <Toaster position="bottom-right" richColors />
+          </TooltipProvider>
+        </body>
       </html>
     </ClerkProvider>
   );
@@ -442,45 +458,6 @@ export default function LoginPage() {
     </div>
   );
 }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f7f7f5]">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">W</span>
-          </div>
-          <span className="font-semibold text-gray-900">Writeup</span>
-        </div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">Welcome back</h1>
-        <p className="text-sm text-gray-500 mb-6">Sign in to your account</p>
-        {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
-        <div className="space-y-3">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-          />
-          <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleLogin} disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </div>
-        <p className="text-sm text-gray-500 mt-4 text-center">
-          No account?{' '}
-          <Link href="/signup" className="text-blue-600 hover:underline">Sign up</Link>
-        </p>
-      </div>
-    </div>
-  );
-}
 ```
 
 ---
@@ -506,34 +483,6 @@ export default function SignupPage() {
             formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-sm normal-case',
           }
         }} />
-      </div>
-    </div>
-  );
-}
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f7f7f5]">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">W</span>
-          </div>
-          <span className="font-semibold text-gray-900">Writeup</span>
-        </div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">Create an account</h1>
-        <p className="text-sm text-gray-500 mb-6">Start writing today</p>
-        {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
-        <div className="space-y-3">
-          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleSignup} disabled={loading}>
-            {loading ? 'Creating account…' : 'Create account'}
-          </Button>
-        </div>
-        <p className="text-sm text-gray-500 mt-4 text-center">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 hover:underline">Sign in</Link>
-        </p>
       </div>
     </div>
   );
@@ -616,26 +565,28 @@ export default function NotePage() {
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { StickyNote, Pin, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { StickyNote, Pin, Trash2, Plus, ChevronDown, ChevronRight, LogOut, Search } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useFolders } from '@/hooks/useFolders';
-import { useNotes } from '@/hooks/useNotes';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
 
 export function Sidebar() {
-  const { activeView, setActiveView } = useNotesStore();
+  const { activeView, setActiveView, searchQuery, setSearchQuery } = useNotesStore();
   const { folders, createFolder } = useFolders();
-  const { createNote } = useNotes();
-  const [foldersOpen, setFoldersOpen] = useState(true);
-  const router = useRouter();
   const { signOut } = useAuth();
+  const [foldersOpen, setFoldersOpen] = useState(true);
+  const [isAddingFolder, setIsAddingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const router = useRouter();
 
-  async function handleSignOut() {
-    await signOut();
-    router.push('/login');
+  async function handleAddFolder(e: React.FormEvent) {
+    e.preventDefault();
+    if (newFolderName.trim()) {
+      await createFolder(newFolderName.trim());
+      setNewFolderName('');
+      setIsAddingFolder(false);
+    }
   }
 
   const navItems = [
@@ -646,25 +597,28 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 h-full bg-[#f7f7f5] border-r border-gray-200 flex flex-col py-4 flex-shrink-0">
-      {/* Logo + New Note */}
-      <div className="px-3 mb-4 flex items-center justify-between">
+      <div className="px-3 mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">W</span>
           </div>
           <span className="font-semibold text-gray-900 text-sm">Writeup</span>
         </div>
-        <Button
-          size="sm"
-          onClick={handleNewNote}
-          className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          New Note
-        </Button>
       </div>
 
-      {/* Nav items */}
+      <div className="px-3 mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search notes..."
+            className="w-full pl-9 pr-3 py-1.5 bg-gray-200/50 border-none rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-gray-400"
+          />
+        </div>
+      </div>
+
       <nav className="px-2 space-y-0.5">
         {navItems.map(({ id, label, icon: Icon }) => (
           <button
@@ -672,71 +626,70 @@ export function Sidebar() {
             onClick={() => { setActiveView(id); router.push('/notes'); }}
             className={cn(
               'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
-              activeView === id
-                ? 'bg-blue-50 text-blue-700 font-medium'
-                : 'text-gray-600 hover:bg-gray-100'
+              activeView === id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
             )}
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
+            <Icon className="w-4 h-4" />
             {label}
           </button>
         ))}
       </nav>
 
-      <div className="my-3 border-t border-gray-200 mx-3" />
-
-      {/* Folders */}
-      <div className="px-2 flex-1 overflow-y-auto">
+      <div className="px-2 mt-6 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between px-3 py-1.5">
-          <button
-            onClick={() => setFoldersOpen(!foldersOpen)}
-            className="text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 flex items-center gap-1"
-          >
+          <button onClick={() => setFoldersOpen(!foldersOpen)} className="text-xs font-semibold text-gray-500 flex items-center gap-1 uppercase tracking-wider">
             {foldersOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             Folders
           </button>
-          <button
-            onClick={async () => {
-              const name = prompt('Folder name:');
-              if (name?.trim()) await createFolder(name.trim());
-            }}
-            className="text-gray-400 hover:text-blue-600 transition-colors"
-          >
+          <button onClick={() => setIsAddingFolder(true)} className="text-gray-400 hover:text-blue-600">
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {isAddingFolder && (
+          <form onSubmit={handleAddFolder} className="px-3 mb-2">
+            <input autoFocus value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} onBlur={() => !newFolderName && setIsAddingFolder(false)} placeholder="Folder name..." className="w-full px-2 py-1 bg-white border border-blue-200 rounded text-sm focus:outline-none" />
+          </form>
+        )}
 
         {foldersOpen && (
           <div className="mt-0.5 space-y-0.5">
             {folders.map((folder) => {
               const viewId = `folder:${folder.id}` as const;
+              const isActive = activeView === viewId;
               return (
-                <button
-                  key={folder.id}
-                  onClick={() => { setActiveView(viewId); router.push('/notes'); }}
-                  className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
-                    activeView === viewId
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  )}
-                >
-                  <span className="text-base leading-none">{folder.icon}</span>
-                  <span className="truncate">{folder.name}</span>
-                </button>
+                <div key={folder.id} className={cn('group w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors', isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100')}>
+                  <button onClick={() => { setActiveView(viewId); router.push('/notes'); }} className="...">
+                    <span>{folder.icon}</span>
+                    <span className="truncate">{folder.name}</span>
+                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 p-1 rounded-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete folder?</AlertDialogTitle>
+                        <AlertDialogDescription>Are you sure? Notes inside will become uncategorized.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={async () => { if (isActive) setActiveView('all'); await deleteFolder(folder.id); }} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* Sign out */}
       <div className="px-5 mt-2">
-        <button
-          onClick={handleSignOut}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          Sign out
+        <button onClick={() => signOut().then(() => router.push('/login'))} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-2">
+          <LogOut className="w-3 h-3" /> Sign out
         </button>
       </div>
     </aside>
@@ -754,8 +707,8 @@ import { useRouter } from 'next/navigation';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useNotes } from '@/hooks/useNotes';
 import { NoteCard } from './NoteCard';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 const VIEW_LABELS: Record<string, string> = {
   all: 'All Notes',
@@ -764,51 +717,32 @@ const VIEW_LABELS: Record<string, string> = {
 };
 
 export function NoteListPanel() {
-  const { activeView, searchQuery, setSearchQuery, activeNoteId } = useNotesStore();
-  const { notes, togglePin, trashNote, deleteNote, restoreNote } = useNotes();
+  const { activeView, activeNoteId } = useNotesStore();
+  const { notes, createNote, togglePin, trashNote, deleteNote, restoreNote } = useNotes();
   const router = useRouter();
 
-  const label = activeView.startsWith('folder:')
-    ? 'Folder'
-    : VIEW_LABELS[activeView] ?? 'Notes';
+  async function handleNewNote() {
+    const folderId = activeView.startsWith('folder:') ? activeView.replace('folder:', '') : undefined;
+    const note = await createNote(folderId);
+    if (note) router.push(`/notes/${note.id}`);
+  }
+
+  const label = activeView.startsWith('folder:') ? 'Folder' : VIEW_LABELS[activeView] ?? 'Notes';
 
   return (
     <div className="w-72 flex-shrink-0 border-r border-gray-200 flex flex-col h-full bg-white">
-      <div className="px-4 pt-5 pb-3 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900 text-[15px]">
-          {label}{' '}
-          <span className="font-normal text-gray-400 text-sm">({notes.length})</span>
+      <div className="px-4 h-14 flex items-center justify-between border-b border-gray-100">
+        <h2 className="font-semibold text-gray-900 text-[15px] truncate">
+          {label} <span className="font-normal text-gray-400 text-sm ml-1">({notes.length})</span>
         </h2>
-        <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search notes..."
-            className="pl-9 h-8 text-sm bg-gray-50 border-gray-200"
-          />
-        </div>
+        <Button onClick={handleNewNote} size="sm" className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> New Note
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {notes.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-sm text-gray-400">
-            No notes here
-          </div>
-        ) : (
-          notes.map((note) => (
-            <NoteCard
-              key={note.id}
-              note={note}
-              isActive={note.id === activeNoteId}
-              isTrashed={activeView === 'trash'}
-              onClick={() => router.push(`/notes/${note.id}`)}
-              onPin={() => togglePin(note)}
-              onTrash={() => trashNote(note.id)}
-              onDelete={() => deleteNote(note.id)}
-              onRestore={() => restoreNote(note.id)}
-            />
-          ))
-        )}
+        {notes.length === 0 ? <div className="flex items-center justify-center h-32 text-sm text-gray-400">No notes here</div> : notes.map((note) => (
+          <NoteCard key={note.id} note={note} isActive={note.id === activeNoteId} isTrashed={activeView === 'trash'} onClick={() => router.push(`/notes/${note.id}`)} onPin={() => togglePin(note)} onTrash={() => trashNote(note.id)} onDelete={() => deleteNote(note.id)} onRestore={() => restoreNote(note.id)} />
+        ))}
       </div>
     </div>
   );
@@ -817,90 +751,50 @@ export function NoteListPanel() {
 
 ---
 
-## File: `components/notes/NoteCard.tsx`
+## File: `components/notes/EditorHeader.tsx`
 
 ```tsx
 'use client';
 import { Note } from '@/types';
-import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, RotateCcw, X } from 'lucide-react';
+import { Pin, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
-interface NoteCardProps {
+interface Props {
   note: Note;
-  isActive: boolean;
-  isTrashed: boolean;
-  onClick: () => void;
   onPin: () => void;
   onTrash: () => void;
-  onDelete: () => void;
-  onRestore: () => void;
+  onTitleChange: (title: string) => void;
 }
 
-export function NoteCard({ note, isActive, isTrashed, onClick, onPin, onTrash, onDelete, onRestore }: NoteCardProps) {
+export function EditorHeader({ note, onPin, onTrash, onTitleChange }: Props) {
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'group relative px-4 py-3 border-b border-gray-100 cursor-pointer transition-colors',
-        isActive ? 'bg-blue-50' : 'hover:bg-gray-50'
-      )}
-    >
-      {/* Pin */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onPin(); }}
-        className={cn(
-          'absolute top-3 right-3 p-1 rounded transition-opacity',
-          note.is_pinned ? 'opacity-100 text-blue-500' : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600'
-        )}
-        title={note.is_pinned ? 'Unpin' : 'Pin'}
-      >
-        <Pin className="w-3.5 h-3.5" fill={note.is_pinned ? 'currentColor' : 'none'} />
-      </button>
-
-      <h3 className="font-semibold text-sm text-gray-900 pr-6 truncate">{note.title}</h3>
-      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
-        {note.content_text || 'No additional text'}
-      </p>
-
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-gray-400">
-          {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
-        </span>
-        <div className="flex items-center gap-1.5">
-          {note.folder && (
-            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded flex items-center gap-1">
-              <span>{note.folder.icon}</span>
-              <span>{note.folder.name}</span>
-            </span>
-          )}
-          {isTrashed ? (
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => { e.stopPropagation(); onRestore(); }}
-                className="p-1 rounded text-green-500 hover:bg-green-50"
-                title="Restore"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="p-1 rounded text-red-500 hover:bg-red-50"
-                title="Delete permanently"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); onTrash(); }}
-              className="p-1 rounded text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Move to trash"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+    <div className="h-14 px-6 flex items-center justify-between border-b border-gray-100 bg-white">
+      <input
+        type="text"
+        value={note.title || ''}
+        placeholder="Untitled"
+        onChange={(e) => onTitleChange(e.target.value)}
+        className="font-semibold text-gray-900 text-lg bg-transparent border-none focus:outline-none focus:ring-0 flex-1 min-w-0"
+      />
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={onPin} className={cn('h-8 px-2.5 text-xs flex items-center gap-1.5', note.is_pinned ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-gray-500 hover:text-gray-900')}>
+          <Pin className={cn('w-3.5 h-3.5', note.is_pinned && 'fill-current')} /> {note.is_pinned ? 'Pinned' : 'Pin'}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onTrash} className="h-8 px-2.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center gap-1.5">
+          <Trash2 className="w-3.5 h-3.5" /> Delete
+        </Button>
       </div>
     </div>
   );
@@ -916,7 +810,10 @@ export function NoteCard({ note, isActive, isTrashed, onClick, onPin, onTrash, o
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
+import { EditorHeader } from './EditorHeader';
 import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/types';
 import { useEffect } from 'react';
@@ -925,44 +822,49 @@ import { useDebouncedCallback } from 'use-debounce';
 interface Props { note: Note; }
 
 export function NoteEditor({ note }: Props) {
-  const { saveNote } = useNotes();
+  const { saveNote, togglePin, trashNote } = useNotes();
 
-  const debouncedSave = useDebouncedCallback(
-    (id: string, content: unknown, text: string) => {
-      const lines = text.split('\n').filter(Boolean);
-      const title = lines[0]?.slice(0, 100) || 'Untitled';
-      saveNote(id, { content: content as Record<string, unknown>, content_text: text, title });
-    },
-    800
-  );
+  const debouncedSave = useDebouncedCallback((id: string, content: unknown, text: string) => {
+    const lines = text.split('\n').filter(Boolean);
+    const title = lines[0]?.slice(0, 100) || 'Untitled';
+    saveNote(id, { content: content as Record<string, unknown>, content_text: text, title });
+  }, 800);
+
+  const debouncedTitleSave = useDebouncedCallback((id: string, title: string) => {
+    saveNote(id, { title });
+  }, 800);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder: 'Start writing…' }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 underline cursor-pointer',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: 'rounded-lg max-w-full h-auto',
+        },
+      }),
     ],
+    immediatelyRender: false,
     content: note.content ?? '',
-    onUpdate: ({ editor }) => {
-      debouncedSave(note.id, editor.getJSON(), editor.getText());
-    },
-    editorProps: {
-      attributes: {
-        class: 'focus:outline-none min-h-[calc(100vh-120px)]',
-      },
-    },
+    onUpdate: ({ editor }) => debouncedSave(note.id, editor.getJSON(), editor.getText()),
   });
 
   useEffect(() => {
-    if (!editor) return;
-    if (note.content) {
-      editor.commands.setContent(note.content, false);
-    } else {
-      editor.commands.clearContent();
-    }
-  }, [note.id]);
+    if (editor && note.content) editor.commands.setContent(note.content, { emitUpdate: false });
+    else if (editor) editor.commands.clearContent();
+  }, [note.id, editor]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
+      <EditorHeader note={note} onPin={() => togglePin(note)} onTrash={() => trashNote(note.id)} onTitleChange={(title) => debouncedTitleSave(note.id, title)} />
       <EditorToolbar editor={editor} />
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-12 py-8">
@@ -972,16 +874,9 @@ export function NoteEditor({ note }: Props) {
     </div>
   );
 }
-```
-
----
-
-## File: `components/editor/EditorToolbar.tsx`
-
-```tsx
 'use client';
 import { Editor } from '@tiptap/react';
-import { Bold, Italic, List, ListOrdered, Undo, Redo } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, Undo, Redo, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props { editor: Editor | null; }
@@ -1017,6 +912,23 @@ export function EditorToolbar({ editor }: Props) {
 
   const Sep = () => <div className="w-px h-5 bg-gray-200 mx-0.5 self-center" />;
 
+  const setLink = () => {
+    const url = window.prompt('URL');
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  const addImage = () => {
+    const url = window.prompt('Image URL');
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
   return (
     <div className="flex items-center gap-0.5 px-4 py-2 border-b border-gray-100 bg-white">
       <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} title="Heading 1">H1</Btn>
@@ -1028,6 +940,9 @@ export function EditorToolbar({ editor }: Props) {
       <Sep />
       <Btn onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} title="Bullet list"><List className="w-3.5 h-3.5" /></Btn>
       <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} title="Numbered list"><ListOrdered className="w-3.5 h-3.5" /></Btn>
+      <Sep />
+      <Btn onClick={setLink} isActive={editor.isActive('link')} title="Link"><LinkIcon className="w-3.5 h-3.5" /></Btn>
+      <Btn onClick={addImage} title="Image"><ImageIcon className="w-3.5 h-3.5" /></Btn>
       <Sep />
       <Btn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo"><Undo className="w-3.5 h-3.5" /></Btn>
       <Btn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo"><Redo className="w-3.5 h-3.5" /></Btn>

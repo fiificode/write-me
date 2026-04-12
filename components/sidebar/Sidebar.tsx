@@ -1,25 +1,41 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { StickyNote, Pin, Trash2, Plus, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
+import { StickyNote, Pin, Trash2, Plus, ChevronDown, ChevronRight, LogOut, Search } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useFolders } from '@/hooks/useFolders';
-import { useNotes } from '@/hooks/useNotes';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function Sidebar() {
   const { activeView, setActiveView } = useNotesStore();
-  const { folders, createFolder } = useFolders();
-  const { createNote } = useNotes();
+  const { folders, createFolder, deleteFolder } = useFolders();
+  const { searchQuery, setSearchQuery } = useNotesStore();
   const { signOut } = useAuth();
   const [foldersOpen, setFoldersOpen] = useState(true);
+  const [isAddingFolder, setIsAddingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const router = useRouter();
 
-  async function handleNewNote() {
-    const note = await createNote();
-    if (note) router.push(`/notes/${note.id}`);
+  async function handleAddFolder(e: React.FormEvent) {
+    e.preventDefault();
+    if (newFolderName.trim()) {
+      await createFolder(newFolderName.trim());
+      setNewFolderName('');
+      setIsAddingFolder(false);
+    }
   }
 
   async function handleSignOut() {
@@ -35,22 +51,28 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 h-full bg-[#f7f7f5] border-r border-gray-200 flex flex-col py-4 flex-shrink-0">
-      {/* Logo + New Note */}
-      <div className="px-3 mb-4 flex items-center justify-between">
+      {/* Logo Component */}
+      <div className="px-3 mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">W</span>
           </div>
           <span className="font-semibold text-gray-900 text-sm">Writeup</span>
         </div>
-        <Button
-          size="sm"
-          onClick={handleNewNote}
-          className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          New Note
-        </Button>
+      </div>
+
+      {/* Search Bar - Moved from NoteListPanel */}
+      <div className="px-3 mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search notes..."
+            className="w-full pl-9 pr-3 py-1.5 bg-gray-200/50 border-none rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-gray-400"
+          />
+        </div>
       </div>
 
       {/* Nav items */}
@@ -85,34 +107,81 @@ export function Sidebar() {
             Folders
           </button>
           <button
-            onClick={async () => {
-              const name = prompt('Folder name:');
-              if (name?.trim()) await createFolder(name.trim());
-            }}
+            onClick={() => setIsAddingFolder(true)}
             className="text-gray-400 hover:text-blue-600 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
 
+        {isAddingFolder && (
+          <form onSubmit={handleAddFolder} className="px-3 mb-2">
+            <input
+              autoFocus
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onBlur={() => !newFolderName && setIsAddingFolder(false)}
+              placeholder="Folder name..."
+              className="w-full px-2 py-1 bg-white border border-blue-200 rounded text-sm focus:outline-none"
+            />
+          </form>
+        )}
+
         {foldersOpen && (
           <div className="mt-0.5 space-y-0.5">
             {folders.map((folder) => {
               const viewId = `folder:${folder.id}` as const;
+              const isActive = activeView === viewId;
+              
               return (
-                <button
-                  key={folder.id}
-                  onClick={() => { setActiveView(viewId); router.push('/notes'); }}
+                <div 
+                  key={folder.id} 
                   className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
-                    activeView === viewId
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-100'
+                    'group w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
+                    isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
                   )}
                 >
-                  <span className="text-base leading-none">{folder.icon}</span>
-                  <span className="truncate">{folder.name}</span>
-                </button>
+                  <button
+                    onClick={() => { setActiveView(viewId); router.push('/notes'); }}
+                    className="flex items-center gap-2.5 flex-1 text-left truncate"
+                  >
+                    <span className="text-base leading-none">{folder.icon}</span>
+                    <span className="truncate">{folder.name}</span>
+                  </button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete folder?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete &quot;{folder.name}&quot;? 
+                          Notes inside will become uncategorized but won&apos;t be deleted.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={async () => {
+                            if (isActive) setActiveView('all');
+                            await deleteFolder(folder.id);
+                          }}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               );
             })}
           </div>
