@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useNotes } from '@/hooks/useNotes';
-import { NoteCard } from './NoteCard';
+import { NoteCard } from '@/components/notes/NoteCard';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
@@ -36,7 +36,7 @@ export function NoteListPanel() {
         <Button
           onClick={handleNewNote}
           size="sm"
-          className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-1.5"
+          className="h-8 px-3 text-xs text-white cursor-pointer flex items-center gap-1.5"
         >
           <Plus className="w-3.5 h-3.5" />
           New Note
@@ -44,8 +44,8 @@ export function NoteListPanel() {
       </div>
       <div className="flex-1 overflow-y-auto">
         {notes.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-sm text-gray-400">
-            No notes here
+          <div className="flex items-center justify-center h-32 text-sm text-gray-300">
+            📭 No notes here
           </div>
         ) : (
           notes.map((note) => (

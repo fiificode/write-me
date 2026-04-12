@@ -1,83 +1,110 @@
-'use client';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
-import { EditorToolbar } from '@/components/editor/EditorToolbar';
-import { EditorHeader } from './EditorHeader';
-import { useNotes } from '@/hooks/useNotes';
-import { Note } from '@/types';
-import { useEffect } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
+"use client"
+import { useEditor, EditorContent } from "@tiptap/react"
+import { StarterKit } from "@tiptap/starter-kit"
+import { Placeholder } from "@tiptap/extension-placeholder"
+import { Link } from "@tiptap/extension-link"
+import { Image } from "@tiptap/extension-image"
+import { Table } from "@tiptap/extension-table"
+import { TableRow } from "@tiptap/extension-table-row"
+import { TableCell } from "@tiptap/extension-table-cell"
+import { TableHeader } from "@tiptap/extension-table-header"
+import { EditorToolbar } from "@/components/editor/EditorToolbar"
+import { EditorHeader } from "@/components/notes/EditorHeader"
+import { useNotes } from "@/hooks/useNotes"
+import { Note } from "@/types"
+import { useEffect } from "react"
+import { useDebouncedCallback } from "use-debounce"
 
-interface Props { note: Note; }
+interface Props {
+  note: Note
+}
 
 export function NoteEditor({ note }: Props) {
-  const { saveNote, togglePin, trashNote } = useNotes();
+  const { saveNote, togglePin, trashNote } = useNotes()
 
   const debouncedSave = useDebouncedCallback(
     (id: string, content: unknown, text: string) => {
-      const updates: Partial<Note> = { content: content as Record<string, unknown>, content_text: text };
-      
+      const updates: Partial<Note> = {
+        content: content as Record<string, unknown>,
+        content_text: text,
+      }
+
       // Only auto-extract title if it's currently Untitled
-      if (note.title === 'Untitled' || !note.title) {
-        const lines = text.split('\n').filter(Boolean);
+      if (note.title === "Untitled" || !note.title) {
+        const lines = text.split("\n").filter(Boolean)
         if (lines[0]) {
-          updates.title = lines[0].slice(0, 100);
+          updates.title = lines[0].slice(0, 100)
         }
       }
-      
-      saveNote(id, updates);
+
+      saveNote(id, updates)
     },
     800
-  );
+  )
 
-  const debouncedTitleSave = useDebouncedCallback((id: string, title: string) => {
-    saveNote(id, { title });
-  }, 800);
+  const debouncedTitleSave = useDebouncedCallback(
+    (id: string, title: string) => {
+      saveNote(id, { title })
+    },
+    800
+  )
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: 'Start writing…' }),
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+      }),
+      Placeholder.configure({ placeholder: "Start writing…" }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 underline cursor-pointer',
-          target: '_blank',
-          rel: 'noopener noreferrer',
+          class: "text-blue-600 underline cursor-pointer",
+          target: "_blank",
+          rel: "noopener noreferrer",
         },
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'rounded-lg max-w-full h-auto',
+          class: "rounded-lg max-w-full h-auto",
         },
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     immediatelyRender: false,
-    content: note.content ?? '',
+    content: note.content ?? "",
     onUpdate: ({ editor }) => {
-      debouncedSave(note.id, editor.getJSON(), editor.getText());
+      debouncedSave(note.id, editor.getJSON(), editor.getText())
     },
     editorProps: {
       attributes: {
-        class: 'focus:outline-none min-h-[calc(100vh-120px)]',
+        class: "writeup-editor focus:outline-none min-h-[calc(100vh-120px)]",
       },
     },
-  });
+  })
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor) return
     if (note.content) {
-      editor.commands.setContent(note.content, { emitUpdate: false });
+      editor.commands.setContent(note.content, { emitUpdate: false })
     } else {
-      editor.commands.clearContent();
+      editor.commands.clearContent()
     }
-  }, [note.id]);
+  }, [note.id])
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex h-full flex-col bg-white">
       <EditorHeader
         note={note}
         onPin={() => togglePin(note)}
@@ -86,10 +113,10 @@ export function NoteEditor({ note }: Props) {
       />
       <EditorToolbar editor={editor} />
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-12 py-8">
-          <EditorContent editor={editor} className="writeup-editor" />
+        <div className="mx-auto max-w-4xl px-12 py-8">
+          <EditorContent editor={editor} />
         </div>
       </div>
     </div>
-  );
+  )
 }

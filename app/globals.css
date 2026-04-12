@@ -167,45 +167,76 @@
 }
 
 .writeup-editor ul,
-.writeup-editor ol {
-  padding-left: 1.5rem;
-  margin-bottom: 0.75rem;
+.ProseMirror ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  padding-left: 2rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
 }
 
-.writeup-editor li {
-  margin-bottom: 0.25rem;
-  line-height: 1.7;
-  color: #374151;
+.writeup-editor ol,
+.ProseMirror ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  padding-left: 2rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
 }
 
-.writeup-editor strong {
+.writeup-editor li,
+.ProseMirror li {
+  display: list-item !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.writeup-editor li > p,
+.ProseMirror li > p {
+  display: inline !important;
+  margin: 0 !important;
+}
+
+/* Table styles */
+.writeup-editor table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.writeup-editor td,
+.writeup-editor th,
+.ProseMirror td,
+.ProseMirror th {
+  border: 1px solid #94a3b8 !important;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 8px 12px;
+  position: relative;
+  vertical-align: top;
+}
+
+.writeup-editor th,
+.ProseMirror th {
+  background-color: #f1f5f9;
   font-weight: 600;
-  color: #111827;
+  text-align: left;
 }
 
-.writeup-editor em {
-  font-style: italic;
+.writeup-editor .selectedCell:after {
+  background: rgba(200, 200, 255, 0.4);
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
 }
 
-.writeup-editor a {
-  color: #2563eb;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
-.writeup-editor a:hover {
-  color: #1d4ed8;
-}
-
-.writeup-editor img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 1.5rem 0;
-}
-
-.writeup-editor img.ProseMirror-selectednode {
-  outline: 3px solid #3b82f6;
+.writeup-editor .tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
 }

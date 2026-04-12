@@ -54,10 +54,10 @@ export function Sidebar() {
       {/* Logo Component */}
       <div className="px-3 mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">W</span>
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-white text-sm font-bold">W</span>
           </div>
-          <span className="font-semibold text-gray-900 text-sm">Writeup</span>
+          <span className="font-semibold text-gray-900 text-lg tracking-tight uppercase">Writeup</span>
         </div>
       </div>
 
@@ -82,9 +82,9 @@ export function Sidebar() {
             key={id}
             onClick={() => { setActiveView(id); router.push('/notes'); }}
             className={cn(
-              'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
+              'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left cursor-pointer',
               activeView === id
-                ? 'bg-blue-50 text-blue-700 font-medium'
+                ? 'bg-primary/10 text-primary font-medium'
                 : 'text-gray-600 hover:bg-gray-100'
             )}
           >
@@ -192,7 +192,7 @@ export function Sidebar() {
       <div className="px-5 mt-2">
         <button
           onClick={handleSignOut}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-2"
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-2 cursor-pointer"
         >
           <LogOut className="w-3 h-3" />
           Sign out
