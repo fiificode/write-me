@@ -5,6 +5,7 @@ import { useNotesStore } from "@/store/useNotesStore"
 import { Sidebar, MobileMenuButton } from "@/components/sidebar/Sidebar"
 import { NoteListPanel } from "@/components/notes/NoteListPanel"
 import { NoteEditor } from "@/components/notes/NoteEditor"
+import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 
 export function ResponsiveNotesLayout() {
@@ -48,19 +49,23 @@ export function ResponsiveNotesLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-white">
       {/* Mobile sidebar overlay */}
-      {isSidebarOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-            onClick={handleOverlayClick}
-          />
-          {/* Sidebar */}
-          <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
-            <Sidebar onClose={() => setSidebarOpen(false)} />
-          </div>
-        </>
-      )}
+      {/* Backdrop */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 lg:hidden",
+          isSidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={handleOverlayClick}
+      />
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:hidden",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <Sidebar onClose={() => setSidebarOpen(false)} />
+      </div>
 
       {/* Desktop sidebar - always visible on large screens */}
       <div className="hidden lg:block">

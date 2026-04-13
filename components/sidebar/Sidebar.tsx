@@ -37,8 +37,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClose, className }: SidebarProps) {
-  const { activeView, setActiveView, isSidebarOpen, setSidebarOpen } =
-    useNotesStore()
+  const { activeView, setActiveView, setSidebarOpen } = useNotesStore()
   const { folders, createFolder, deleteFolder } = useFolders()
   const { searchQuery, setSearchQuery } = useNotesStore()
   const { signOut } = useAuth()
