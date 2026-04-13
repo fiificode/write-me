@@ -6,7 +6,7 @@ import { Sidebar, MobileMenuButton } from "@/components/sidebar/Sidebar"
 import { NoteListPanel } from "@/components/notes/NoteListPanel"
 import { NoteEditor } from "@/components/notes/NoteEditor"
 import { cn } from "@/lib/utils"
-import { Loader2 } from "lucide-react"
+import { Loader2, PanelLeftClose, PanelLeft } from "lucide-react"
 
 export function ResponsiveNotesLayout() {
   const { id } = useParams<{ id: string }>()
@@ -16,6 +16,8 @@ export function ResponsiveNotesLayout() {
     setSidebarOpen,
     isNoteListOpen,
     setNoteListOpen,
+    isDesktopSidebarOpen,
+    toggleDesktopSidebar,
     activeNoteId,
     setActiveNote,
     notes,
@@ -67,10 +69,36 @@ export function ResponsiveNotesLayout() {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Desktop sidebar - always visible on large screens */}
-      <div className="hidden lg:block">
-        <Sidebar />
+      {/* Desktop sidebar - collapsible on large screens */}
+      <div
+        className={cn(
+          "hidden lg:flex shrink-0 transition-all duration-300 ease-in-out",
+          isDesktopSidebarOpen ? "w-64" : "w-0"
+        )}
+      >
+        <div className="relative w-64 overflow-hidden h-full">
+          <Sidebar />
+          {/* Toggle inside sidebar header - top right, no overlap with logo */}
+          <button
+            onClick={toggleDesktopSidebar}
+            className="absolute top-3.5 right-3 z-10 flex items-center justify-center rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            title="Hide sidebar"
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </button>
+        </div>
       </div>
+
+      {/* Desktop sidebar toggle - shown only when sidebar is collapsed */}
+      {!isDesktopSidebarOpen && (
+        <button
+          onClick={toggleDesktopSidebar}
+          className="hidden lg:flex absolute top-3 left-3 z-30 items-center justify-center rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          title="Show sidebar"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </button>
+      )}
 
       {/* Mobile menu button */}
       <MobileMenuButton />

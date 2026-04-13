@@ -7,9 +7,10 @@ interface NotesState {
   activeNoteId: string | null;
   activeView: NoteView;
   searchQuery: string;
-  // Mobile UI state
+  // UI state
   isSidebarOpen: boolean;
   isNoteListOpen: boolean;
+  isDesktopSidebarOpen: boolean;
   setNotes: (notes: Note[]) => void;
   setIsLoading: (loading: boolean) => void;
   setActiveNote: (id: string | null) => void;
@@ -17,7 +18,9 @@ interface NotesState {
   setSearchQuery: (q: string) => void;
   setSidebarOpen: (open: boolean) => void;
   setNoteListOpen: (open: boolean) => void;
+  setDesktopSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  toggleDesktopSidebar: () => void;
   toggleNoteList: () => void;
   addNote: (note: Note) => void;
   updateNote: (id: string, updates: Partial<Note>) => void;
@@ -30,9 +33,10 @@ export const useNotesStore = create<NotesState>((set) => ({
   activeNoteId: null,
   activeView: 'all',
   searchQuery: '',
-  // Mobile UI state - defaults
+  // UI state - defaults
   isSidebarOpen: false,
   isNoteListOpen: true,
+  isDesktopSidebarOpen: true,
   setNotes: (notes) => set({ notes }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setActiveNote: (id) => set({ activeNoteId: id }),
@@ -40,7 +44,9 @@ export const useNotesStore = create<NotesState>((set) => ({
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
   setNoteListOpen: (isNoteListOpen) => set({ isNoteListOpen }),
+  setDesktopSidebarOpen: (isDesktopSidebarOpen) => set({ isDesktopSidebarOpen }),
   toggleSidebar: () => set((s) => ({ isSidebarOpen: !s.isSidebarOpen })),
+  toggleDesktopSidebar: () => set((s) => ({ isDesktopSidebarOpen: !s.isDesktopSidebarOpen })),
   toggleNoteList: () => set((s) => ({ isNoteListOpen: !s.isNoteListOpen })),
   addNote: (note) => set((s) => ({ notes: [note, ...s.notes] })),
   updateNote: (id, updates) =>
