@@ -20,9 +20,10 @@ import { useDebouncedCallback } from "use-debounce"
 
 interface Props {
   note: Note
+  onBack?: () => void
 }
 
-export function NoteEditor({ note }: Props) {
+export function NoteEditor({ note, onBack }: Props) {
   const { saveNote, togglePin, trashNote } = useNotes()
 
   const debouncedSave = useDebouncedCallback(
@@ -123,10 +124,11 @@ export function NoteEditor({ note }: Props) {
         onPin={() => togglePin(note)}
         onTrash={() => trashNote(note.id)}
         onTitleChange={(title) => debouncedTitleSave(note.id, title)}
+        onBack={onBack}
       />
       <EditorToolbar editor={editor} />
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-12 py-8">
+        <div className="mx-auto max-w-4xl px-6 sm:px-12 py-8">
           <EditorContent editor={editor} />
         </div>
       </div>

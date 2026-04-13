@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Note } from '@/types';
-import { Pin, Trash2 } from 'lucide-react';
+import { Pin, Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -21,9 +21,10 @@ interface Props {
   onPin: () => void;
   onTrash: () => void;
   onTitleChange: (title: string) => void;
+  onBack?: () => void;
 }
 
-export function EditorHeader({ note, onPin, onTrash, onTitleChange }: Props) {
+export function EditorHeader({ note, onPin, onTrash, onTitleChange, onBack }: Props) {
   const [localTitle, setLocalTitle] = useState(note.title || '');
 
   // Keep local state in sync when switching notes
@@ -37,14 +38,24 @@ export function EditorHeader({ note, onPin, onTrash, onTitleChange }: Props) {
   };
 
   return (
-    <div className="h-14 px-6 flex items-center justify-between border-b border-gray-100 bg-white">
-      <input
-        type="text"
-        value={localTitle}
-        placeholder="Untitled"
-        onChange={(e) => handleChange(e.target.value)}
-        className="font-semibold text-gray-900 text-lg bg-transparent border-none focus:outline-none focus:ring-0 flex-1 min-w-0"
-      />
+    <div className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-gray-100 bg-white">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="p-1.5 rounded-md hover:bg-gray-100 transition-colors shrink-0 sm:hidden"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-500" />
+          </button>
+        )}
+        <input
+          type="text"
+          value={localTitle}
+          placeholder="Untitled"
+          onChange={(e) => handleChange(e.target.value)}
+          className="font-semibold text-gray-900 text-lg bg-transparent border-none focus:outline-none focus:ring-0 flex-1 min-w-0"
+        />
+      </div>
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -66,7 +77,7 @@ export function EditorHeader({ note, onPin, onTrash, onTitleChange }: Props) {
               className="h-8 px-2.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Delete
+              <span className="hidden sm:inline">Delete</span>
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>

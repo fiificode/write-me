@@ -10,6 +10,8 @@ import {
   ChevronRight,
   LogOut,
   Search,
+  Menu,
+  X,
 } from "lucide-react"
 import { useAuth } from "@clerk/nextjs"
 import { useNotesStore } from "@/store/useNotesStore"
@@ -29,8 +31,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import Image from "next/image"
 
-export function Sidebar() {
-  const { activeView, setActiveView } = useNotesStore()
+interface SidebarProps {
+  onClose?: () => void
+  className?: string
+}
+
+export function Sidebar({ onClose, className }: SidebarProps) {
+  const { activeView, setActiveView, isSidebarOpen, setSidebarOpen } =
+    useNotesStore()
   const { folders, createFolder, deleteFolder } = useFolders()
   const { searchQuery, setSearchQuery } = useNotesStore()
   const { signOut } = useAuth()
@@ -51,30 +59,50 @@ export function Sidebar() {
   async function handleSignOut() {
     await signOut()
     router.push("/login")
+    setSidebarOpen(false)
+  }
+
+  function handleNavClick(view: string) {
+    setActiveView(view as typeof activeView)
+    router.push("/notes")
+    if (onClose) onClose()
   }
 
   const navItems = [
-    { id: "all" as const, label: "All Notes", icon: StickyNote },
-    { id: "pinned" as const, label: "Pinned Notes", icon: Pin },
-    { id: "trash" as const, label: "Trash", icon: Trash2 },
+    { id: "all", label: "All Notes", icon: StickyNote },
+    { id: "pinned", label: "Pinned Notes", icon: Pin },
+    { id: "trash", label: "Trash", icon: Trash2 },
   ]
 
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-gray-200 bg-[#f7f7f5] py-4">
-      {/* Logo Component */}
-      <div className="flex items-center justify-center">
+    <aside
+      className={cn(
+        "flex h-full w-64 shrink-0 flex-col border-r border-gray-200 bg-[#f7f7f5] py-4",
+        className
+      )}
+    >
+      {/* Header with logo and mobile close */}
+      <div className="mb-4 flex items-center justify-between px-3">
         <div className="flex items-center gap-2">
           <Image
             src="/logo.png"
             width={148}
             height={148}
             alt="Writeup"
-            className="h-20 w-full object-contain"
+            className="h-10 w-auto object-contain"
           />
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 transition-colors hover:bg-gray-200"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        )}
       </div>
 
-      {/* Search Bar - Moved from NoteListPanel */}
+      {/* Search Bar */}
       <div className="mb-4 px-3">
         <div className="relative">
           <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -93,10 +121,7 @@ export function Sidebar() {
         {navItems.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => {
-              setActiveView(id)
-              router.push("/notes")
-            }}
+            onClick={() => handleNavClick(id)}
             className={cn(
               "flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
               activeView === id
@@ -104,7 +129,7 @@ export function Sidebar() {
                 : "text-gray-600 hover:bg-gray-100"
             )}
           >
-            <Icon className="h-4 w-4 flex-shrink-0" />
+            <Icon className="h-4 w-4 shrink-0" />
             {label}
           </button>
         ))}
@@ -151,7 +176,7 @@ export function Sidebar() {
         {foldersOpen && (
           <div className="mt-0.5 space-y-0.5">
             {folders.map((folder) => {
-              const viewId = `folder:${folder.id}` as const
+              const viewId = `folder:${folder.id}`
               const isActive = activeView === viewId
 
               return (
@@ -165,10 +190,7 @@ export function Sidebar() {
                   )}
                 >
                   <button
-                    onClick={() => {
-                      setActiveView(viewId)
-                      router.push("/notes")
-                    }}
+                    onClick={() => handleNavClick(viewId)}
                     className="flex flex-1 items-center gap-2.5 truncate text-left"
                   >
                     <span className="text-base leading-none">
@@ -227,5 +249,21 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  )
+}
+
+// Mobile menu button component
+export function MobileMenuButton() {
+  const { toggleSidebar, isSidebarOpen } = useNotesStore()
+
+  if (isSidebarOpen) return null
+
+  return (
+    <button
+      onClick={toggleSidebar}
+      className="fixed bottom-4 left-4 z-50 rounded-full bg-primary p-3 text-white shadow-lg transition-colors hover:bg-primary/90 lg:hidden"
+    >
+      <Menu className="h-6 w-6" />
+    </button>
   )
 }
