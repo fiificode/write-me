@@ -5,69 +5,160 @@ import { createClerkSupabaseClient } from '@/lib/supabase/client';
 import { useNotesStore } from '@/store/useNotesStore';
 import { Note } from '@/types';
 import { toast } from 'sonner';
+import { db, LocalNote } from '@/lib/db';
+import { queueSync, processQueue, fullSync, isOnline } from '@/lib/sync/manager';
+import { useOnlineStatus } from '@/lib/sync/hooks';
 
 export function useNotes() {
   const { getToken, userId } = useAuth();
+  const online = useOnlineStatus();
   const { notes, setNotes, addNote, updateNote, removeNote, activeView, searchQuery } =
     useNotesStore();
 
+  const syncFromDexie = useCallback(async () => {
+    if (!userId) return;
+    const localNotes = await db.notes.where('user_id').equals(userId).toArray();
+    const notesWithFolder = await Promise.all(
+      localNotes.map(async (n) => {
+        if (n.folder_id) {
+          const folder = await db.folders.get(n.folder_id);
+          return { ...n, folder: folder ? { id: folder.id, name: folder.name, icon: folder.icon } : null };
+        }
+        return { ...n, folder: null };
+      })
+    );
+    setNotes(notesWithFolder as Note[]);
+  }, [userId, setNotes]);
+
   const fetchNotes = useCallback(async () => {
+    if (!userId) return;
+
+    await syncFromDexie();
+
+    if (!isOnline()) return;
+
     const token = await getToken({ template: 'supabase' });
     if (!token) return;
+
     const supabase = createClerkSupabaseClient(token);
     const { data } = await supabase
       .from('notes')
       .select('*, folder:folders(id, name, icon)')
+      .eq('user_id', userId)
       .order('updated_at', { ascending: false });
-    if (data) setNotes(data as Note[]);
-  }, [getToken, setNotes]);
+
+    if (data) {
+      for (const note of data as (Note & { folder?: Pick<import('@/types').Folder, 'id' | 'name' | 'icon'> | null })[]) {
+        const existing = await db.notes.get(note.id);
+        if (!existing || !existing.pendingSync) {
+          await db.notes.put({ ...note, pendingSync: false } as LocalNote);
+        }
+      }
+      await syncFromDexie();
+    }
+  }, [getToken, userId, syncFromDexie]);
 
   useEffect(() => {
     fetchNotes();
   }, [fetchNotes]);
 
+  useEffect(() => {
+    if (!online || !userId) return;
+
+    const currentUserId = userId;
+
+    async function sync() {
+      const token = await getToken({ template: 'supabase' });
+      if (!token) return;
+      await processQueue(token);
+      await fullSync(token, currentUserId);
+      await syncFromDexie();
+    }
+
+    sync();
+  }, [online, getToken, userId, syncFromDexie]);
+
   async function createNote(folderId?: string) {
     if (!userId) return null;
-    const token = await getToken({ template: 'supabase' });
-    if (!token) return null;
-    const supabase = createClerkSupabaseClient(token);
-    
-    const { data, error } = await supabase
-      .from('notes')
-      .insert({ user_id: userId, folder_id: folderId ?? null, title: 'Untitled' })
-      .select('*, folder:folders(id, name, icon)')
-      .single();
-    if (data && !error) {
-      addNote(data as Note);
-      toast.success('Note created');
-      return data as Note;
+    const now = new Date().toISOString();
+    const note: LocalNote = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      folder_id: folderId ?? null,
+      title: 'Untitled',
+      content: null,
+      content_text: null,
+      is_pinned: false,
+      is_trashed: false,
+      created_at: now,
+      updated_at: now,
+      pendingSync: true,
+      localUpdatedAt: now,
+    };
+
+    await db.notes.add(note);
+    await queueSync('create', 'notes', note.id, note);
+
+    let folder = null;
+    if (folderId) {
+      folder = await db.folders.get(folderId);
     }
-    return null;
+    const noteWithFolder = {
+      ...note,
+      folder: folder ? { id: folder.id, name: folder.name, icon: folder.icon } : null,
+    };
+    addNote(noteWithFolder as Note);
+    toast.success('Note created');
+
+    if (isOnline()) {
+      const token = await getToken({ template: 'supabase' });
+      if (token) {
+        await processQueue(token);
+        await syncFromDexie();
+      }
+    }
+
+    return noteWithFolder as Note;
   }
 
   async function saveNote(id: string, updates: Partial<Note>) {
-    updateNote(id, updates); // optimistic
-    const token = await getToken({ template: 'supabase' });
-    if (!token) return;
-    const supabase = createClerkSupabaseClient(token);
+    const now = new Date().toISOString();
+    const existingNote = await db.notes.get(id);
+    if (!existingNote) return;
 
-    const { data } = await supabase
-      .from('notes')
-      .update(updates)
-      .eq('id', id)
-      .select('*, folder:folders(id, name, icon)')
-      .single();
-    if (data) updateNote(id, data as Note);
+    const updatedNote = {
+      ...updates,
+      updated_at: now,
+      pendingSync: true,
+      localUpdatedAt: now,
+    };
+
+    await db.notes.update(id, updatedNote as Partial<LocalNote>);
+    await queueSync('update', 'notes', id, updates);
+
+    updateNote(id, { ...updates, updated_at: now });
+
+    if (isOnline()) {
+      const token = await getToken({ template: 'supabase' });
+      if (token) {
+        await processQueue(token);
+        await syncFromDexie();
+      }
+    }
   }
 
   async function deleteNote(id: string) {
+    await db.notes.delete(id);
+    await queueSync('delete', 'notes', id);
     removeNote(id);
-    const token = await getToken({ template: 'supabase' });
-    if (!token) return;
-    const supabase = createClerkSupabaseClient(token);
-    const { error } = await supabase.from('notes').delete().eq('id', id);
-    if (!error) toast.success('Note deleted forever');
-    else toast.error('Failed to delete note');
+    toast.success('Note deleted forever');
+
+    if (isOnline()) {
+      const token = await getToken({ template: 'supabase' });
+      if (token) {
+        await processQueue(token);
+      }
+    }
   }
 
   async function togglePin(note: Note) {
