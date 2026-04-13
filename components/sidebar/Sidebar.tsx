@@ -1,12 +1,21 @@
-'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { StickyNote, Pin, Trash2, Plus, ChevronDown, ChevronRight, LogOut, Search } from 'lucide-react';
-import { useAuth } from '@clerk/nextjs';
-import { useNotesStore } from '@/store/useNotesStore';
-import { useFolders } from '@/hooks/useFolders';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+"use client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import {
+  StickyNote,
+  Pin,
+  Trash2,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
+  Search,
+} from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
+import { useNotesStore } from "@/store/useNotesStore"
+import { useFolders } from "@/hooks/useFolders"
+import { cn } from "@/lib/utils"
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,105 +26,116 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import Image from "next/image"
 
 export function Sidebar() {
-  const { activeView, setActiveView } = useNotesStore();
-  const { folders, createFolder, deleteFolder } = useFolders();
-  const { searchQuery, setSearchQuery } = useNotesStore();
-  const { signOut } = useAuth();
-  const [foldersOpen, setFoldersOpen] = useState(true);
-  const [isAddingFolder, setIsAddingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const router = useRouter();
+  const { activeView, setActiveView } = useNotesStore()
+  const { folders, createFolder, deleteFolder } = useFolders()
+  const { searchQuery, setSearchQuery } = useNotesStore()
+  const { signOut } = useAuth()
+  const [foldersOpen, setFoldersOpen] = useState(true)
+  const [isAddingFolder, setIsAddingFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState("")
+  const router = useRouter()
 
   async function handleAddFolder(e: React.FormEvent) {
-    e.preventDefault();
+    e.preventDefault()
     if (newFolderName.trim()) {
-      await createFolder(newFolderName.trim());
-      setNewFolderName('');
-      setIsAddingFolder(false);
+      await createFolder(newFolderName.trim())
+      setNewFolderName("")
+      setIsAddingFolder(false)
     }
   }
 
   async function handleSignOut() {
-    await signOut();
-    router.push('/login');
+    await signOut()
+    router.push("/login")
   }
 
   const navItems = [
-    { id: 'all' as const, label: 'All Notes', icon: StickyNote },
-    { id: 'pinned' as const, label: 'Pinned Notes', icon: Pin },
-    { id: 'trash' as const, label: 'Trash', icon: Trash2 },
-  ];
+    { id: "all" as const, label: "All Notes", icon: StickyNote },
+    { id: "pinned" as const, label: "Pinned Notes", icon: Pin },
+    { id: "trash" as const, label: "Trash", icon: Trash2 },
+  ]
 
   return (
-    <aside className="w-56 h-full bg-[#f7f7f5] border-r border-gray-200 flex flex-col py-4 flex-shrink-0">
+    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-gray-200 bg-[#f7f7f5] py-4">
       {/* Logo Component */}
-      <div className="px-3 mb-2 flex items-center justify-between">
+      <div className="flex items-center justify-center">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-white text-sm font-bold">W</span>
-          </div>
-          <span className="font-semibold text-gray-900 text-lg tracking-tight uppercase">Writeup</span>
+          <Image
+            src="/logo.png"
+            width={148}
+            height={148}
+            alt="Writeup"
+            className="h-20 w-full object-contain"
+          />
         </div>
       </div>
 
       {/* Search Bar - Moved from NoteListPanel */}
-      <div className="px-3 mb-4">
+      <div className="mb-4 px-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search notes..."
-            className="w-full pl-9 pr-3 py-1.5 bg-gray-200/50 border-none rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-gray-400"
+            className="w-full rounded-md border-none bg-gray-200/50 py-1.5 pr-3 pl-9 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           />
         </div>
       </div>
 
       {/* Nav items */}
-      <nav className="px-2 space-y-0.5">
+      <nav className="space-y-0.5 px-2">
         {navItems.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => { setActiveView(id); router.push('/notes'); }}
+            onClick={() => {
+              setActiveView(id)
+              router.push("/notes")
+            }}
             className={cn(
-              'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left cursor-pointer',
+              "flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
               activeView === id
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? "bg-primary/10 font-medium text-primary"
+                : "text-gray-600 hover:bg-gray-100"
             )}
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
+            <Icon className="h-4 w-4 flex-shrink-0" />
             {label}
           </button>
         ))}
       </nav>
 
-      <div className="my-3 border-t border-gray-200 mx-3" />
+      <div className="mx-3 my-3 border-t border-gray-200" />
 
       {/* Folders */}
-      <div className="px-2 flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-2">
         <div className="flex items-center justify-between px-3 py-1.5">
           <button
             onClick={() => setFoldersOpen(!foldersOpen)}
-            className="text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 flex items-center gap-1"
+            className="flex items-center gap-1 text-xs font-semibold tracking-wider text-gray-500 uppercase hover:text-gray-700"
           >
-            {foldersOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {foldersOpen ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
             Folders
           </button>
           <button
             onClick={() => setIsAddingFolder(true)}
-            className="text-gray-400 hover:text-blue-600 transition-colors"
+            className="text-gray-400 transition-colors hover:text-blue-600"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {isAddingFolder && (
-          <form onSubmit={handleAddFolder} className="px-3 mb-2">
+          <form onSubmit={handleAddFolder} className="mb-2 px-3">
             <input
               autoFocus
               type="text"
@@ -123,7 +143,7 @@ export function Sidebar() {
               onChange={(e) => setNewFolderName(e.target.value)}
               onBlur={() => !newFolderName && setIsAddingFolder(false)}
               placeholder="Folder name..."
-              className="w-full px-2 py-1 bg-white border border-blue-200 rounded text-sm focus:outline-none"
+              className="w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm focus:outline-none"
             />
           </form>
         )}
@@ -131,48 +151,56 @@ export function Sidebar() {
         {foldersOpen && (
           <div className="mt-0.5 space-y-0.5">
             {folders.map((folder) => {
-              const viewId = `folder:${folder.id}` as const;
-              const isActive = activeView === viewId;
-              
+              const viewId = `folder:${folder.id}` as const
+              const isActive = activeView === viewId
+
               return (
-                <div 
-                  key={folder.id} 
+                <div
+                  key={folder.id}
                   className={cn(
-                    'group w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
-                    isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                    "group flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                    isActive
+                      ? "bg-blue-50 font-medium text-blue-700"
+                      : "text-gray-600 hover:bg-gray-100"
                   )}
                 >
                   <button
-                    onClick={() => { setActiveView(viewId); router.push('/notes'); }}
-                    className="flex items-center gap-2.5 flex-1 text-left truncate"
+                    onClick={() => {
+                      setActiveView(viewId)
+                      router.push("/notes")
+                    }}
+                    className="flex flex-1 items-center gap-2.5 truncate text-left"
                   >
-                    <span className="text-base leading-none">{folder.icon}</span>
+                    <span className="text-base leading-none">
+                      {folder.icon}
+                    </span>
                     <span className="truncate">{folder.name}</span>
                   </button>
-                  
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                        className="rounded-sm p-1 text-gray-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </AlertDialogTrigger>
                     <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete folder?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete &quot;{folder.name}&quot;? 
-                          Notes inside will become uncategorized but won&apos;t be deleted.
+                          Are you sure you want to delete &quot;{folder.name}
+                          &quot;? Notes inside will become uncategorized but
+                          won&apos;t be deleted.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                           onClick={async () => {
-                            if (isActive) setActiveView('all');
-                            await deleteFolder(folder.id);
+                            if (isActive) setActiveView("all")
+                            await deleteFolder(folder.id)
                           }}
                           className="bg-red-600 hover:bg-red-700"
                         >
@@ -182,22 +210,22 @@ export function Sidebar() {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              );
+              )
             })}
           </div>
         )}
       </div>
 
       {/* Sign out */}
-      <div className="px-5 mt-2">
+      <div className="mt-2 px-5">
         <button
           onClick={handleSignOut}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-2 cursor-pointer"
+          className="flex cursor-pointer items-center gap-2 text-xs text-gray-400 transition-colors hover:text-gray-600"
         >
-          <LogOut className="w-3 h-3" />
+          <LogOut className="h-3 w-3" />
           Sign out
         </button>
       </div>
     </aside>
-  );
+  )
 }
