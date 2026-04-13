@@ -1,6 +1,6 @@
 "use client"
 import { useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useNotesStore } from "@/store/useNotesStore"
 import { Sidebar, MobileMenuButton } from "@/components/sidebar/Sidebar"
 import { NoteListPanel } from "@/components/notes/NoteListPanel"
@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react"
 
 export function ResponsiveNotesLayout() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const {
     isSidebarOpen,
     setSidebarOpen,
@@ -36,6 +37,7 @@ export function ResponsiveNotesLayout() {
   function handleBackToNotes() {
     setNoteListOpen(true)
     setActiveNote(null)
+    router.push("/notes")
   }
 
   // Close sidebar when clicking overlay on mobile
