@@ -12,41 +12,66 @@ import { useOnlineStatus } from '@/lib/sync/hooks';
 export function useFolders() {
   const { getToken, userId } = useAuth();
   const online = useOnlineStatus();
-  const { folders, setFolders, addFolder, removeFolder } = useFoldersStore();
+  const { folders, setFolders, setIsLoading, addFolder, removeFolder } = useFoldersStore();
 
   const syncFromDexie = useCallback(async () => {
     if (!userId) return;
-    const localFolders = await db.folders.where('user_id').equals(userId).toArray();
-    setFolders(localFolders as Folder[]);
+    try {
+      const localFolders = await db.folders.where('user_id').equals(userId).toArray();
+      setFolders(localFolders as Folder[]);
+    } catch (error) {
+      console.error('Failed to sync folders from Dexie:', error);
+    }
   }, [userId, setFolders]);
 
   const fetchFolders = useCallback(async () => {
     if (!userId) return;
 
+    setIsLoading(true);
+
     await syncFromDexie();
 
-    if (!isOnline()) return;
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) return;
-
-    const supabase = createClerkSupabaseClient(token);
-    const { data } = await supabase
-      .from('folders')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at');
-
-    if (data) {
-      for (const folder of data as Folder[]) {
-        const existing = await db.folders.get(folder.id);
-        if (!existing || !existing.pendingSync) {
-          await db.folders.put({ ...folder, pendingSync: false } as LocalFolder);
-        }
-      }
-      await syncFromDexie();
+    if (!isOnline()) {
+      setIsLoading(false);
+      return;
     }
-  }, [getToken, userId, syncFromDexie]);
+
+    try {
+      let token: string | null = null;
+      try {
+        token = await getToken({ template: 'supabase' });
+      } catch {
+        // getToken might fail offline
+        setIsLoading(false);
+        return;
+      }
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      const supabase = createClerkSupabaseClient(token);
+      const { data } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at');
+
+      if (data) {
+        for (const folder of data as Folder[]) {
+          const existing = await db.folders.get(folder.id);
+          if (!existing || !existing.pendingSync) {
+            await db.folders.put({ ...folder, pendingSync: false } as LocalFolder);
+          }
+        }
+        await syncFromDexie();
+      }
+    } catch (error) {
+      console.error('Failed to fetch folders from Supabase:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getToken, userId, syncFromDexie, setIsLoading]);
 
   useEffect(() => {
     fetchFolders();
@@ -56,10 +81,19 @@ export function useFolders() {
     if (!online || !userId) return;
 
     async function sync() {
-      const token = await getToken({ template: 'supabase' });
-      if (!token) return;
-      await processQueue(token);
-      await syncFromDexie();
+      try {
+        let token: string | null = null;
+        try {
+          token = await getToken({ template: 'supabase' });
+        } catch {
+          return;
+        }
+        if (!token) return;
+        await processQueue(token);
+        await syncFromDexie();
+      } catch (error) {
+        console.error('Sync failed:', error);
+      }
     }
 
     sync();
@@ -67,43 +101,64 @@ export function useFolders() {
 
   async function createFolder(name: string, icon = '📁') {
     if (!userId) return null;
-    const now = new Date().toISOString();
-    const folder: LocalFolder = {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      name,
-      icon,
-      created_at: now,
-      pendingSync: true,
-    };
+    try {
+      const now = new Date().toISOString();
+      const folder: LocalFolder = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        name,
+        icon,
+        created_at: now,
+        pendingSync: true,
+      };
 
-    await db.folders.add(folder);
-    await queueSync('create', 'folders', folder.id, folder);
-    addFolder(folder as Folder);
-    toast.success('Folder created');
+      await db.folders.add(folder);
+      await queueSync('create', 'folders', folder.id, folder);
+      addFolder(folder as Folder);
+      toast.success('Folder created');
 
-    if (isOnline()) {
-      const token = await getToken({ template: 'supabase' });
-      if (token) {
-        await processQueue(token);
-        await syncFromDexie();
+      if (isOnline()) {
+        let token: string | null = null;
+        try {
+          token = await getToken({ template: 'supabase' });
+        } catch {
+          // getToken might fail offline
+        }
+        if (token) {
+          await processQueue(token);
+          await syncFromDexie();
+        }
       }
-    }
 
-    return folder as Folder;
+      return folder as Folder;
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      toast.error('Failed to create folder');
+      return null;
+    }
   }
 
   async function deleteFolder(id: string) {
-    await db.folders.delete(id);
-    await queueSync('delete', 'folders', id);
-    removeFolder(id);
-    toast.success('Folder deleted');
+    try {
+      await db.folders.delete(id);
+      await queueSync('delete', 'folders', id);
+      removeFolder(id);
+      toast.success('Folder deleted');
 
-    if (isOnline()) {
-      const token = await getToken({ template: 'supabase' });
-      if (token) {
-        await processQueue(token);
+      if (isOnline()) {
+        let token: string | null = null;
+        try {
+          token = await getToken({ template: 'supabase' });
+        } catch {
+          // getToken might fail offline
+        }
+        if (token) {
+          await processQueue(token);
+        }
       }
+    } catch (error) {
+      console.error('Failed to delete folder:', error);
+      toast.error('Failed to delete folder');
     }
   }
 

@@ -3,10 +3,12 @@ import { Note, NoteView } from '@/types';
 
 interface NotesState {
   notes: Note[];
+  isLoading: boolean;
   activeNoteId: string | null;
   activeView: NoteView;
   searchQuery: string;
   setNotes: (notes: Note[]) => void;
+  setIsLoading: (loading: boolean) => void;
   setActiveNote: (id: string | null) => void;
   setActiveView: (view: NoteView) => void;
   setSearchQuery: (q: string) => void;
@@ -17,10 +19,12 @@ interface NotesState {
 
 export const useNotesStore = create<NotesState>((set) => ({
   notes: [],
+  isLoading: false,
   activeNoteId: null,
   activeView: 'all',
   searchQuery: '',
   setNotes: (notes) => set({ notes }),
+  setIsLoading: (isLoading) => set({ isLoading }),
   setActiveNote: (id) => set({ activeNoteId: id }),
   setActiveView: (view) => set({ activeView: view }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),

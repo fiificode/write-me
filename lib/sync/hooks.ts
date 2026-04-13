@@ -38,8 +38,12 @@ export function useSyncStatus(): SyncStatus {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
   const refreshPendingCount = useCallback(async () => {
-    const count = await getPendingSyncCount();
-    setPendingCount(count);
+    try {
+      const count = await getPendingSyncCount();
+      setPendingCount(count);
+    } catch (error) {
+      console.warn('Failed to get pending sync count:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -61,10 +65,19 @@ export function useSyncOnReconnect() {
     const currentUserId = userId;
 
     async function sync() {
-      const token = await getToken({ template: 'supabase' });
-      if (!token) return;
-      await processQueue(token);
-      await fullSync(token, currentUserId);
+      try {
+        let token: string | null = null;
+        try {
+          token = await getToken({ template: 'supabase' });
+        } catch {
+          return;
+        }
+        if (!token) return;
+        await processQueue(token);
+        await fullSync(token, currentUserId);
+      } catch (error) {
+        console.warn('Sync failed:', error);
+      }
     }
 
     sync();

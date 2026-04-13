@@ -4,7 +4,7 @@ import { useNotesStore } from '@/store/useNotesStore';
 import { useNotes } from '@/hooks/useNotes';
 import { NoteCard } from '@/components/notes/NoteCard';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 
 const VIEW_LABELS: Record<string, string> = {
   all: 'All Notes',
@@ -14,7 +14,7 @@ const VIEW_LABELS: Record<string, string> = {
 
 export function NoteListPanel() {
   const { activeView, activeNoteId } = useNotesStore();
-  const { notes, createNote, togglePin, trashNote, deleteNote, restoreNote } = useNotes();
+  const { notes, isLoading, createNote, togglePin, trashNote, deleteNote, restoreNote } = useNotes();
   const router = useRouter();
 
   async function handleNewNote() {
@@ -43,7 +43,11 @@ export function NoteListPanel() {
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {notes.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          </div>
+        ) : notes.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-sm text-gray-300">
             📭 No notes here
           </div>
