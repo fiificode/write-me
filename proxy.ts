@@ -9,6 +9,6 @@ export const proxy = clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sign-in|sign-up).*)',
+    '/((?!_next/static|_next/image|favicon.ico|login|signup).*)',
   ],
 };
