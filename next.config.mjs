@@ -5,7 +5,7 @@ const withPWAInit = require('@ducanh2912/next-pwa').default;
 
 const withPWA = withPWAInit({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  disable: process.env.NODE_ENV === 'development', // Set to false to test PWA in dev
   register: true,
   skipWaiting: true,
   runtimeCaching: [

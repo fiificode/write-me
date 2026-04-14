@@ -21,6 +21,7 @@ interface PWAInstallState {
 
 const DISMISS_KEY = 'pwa-install-dismissed';
 const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+const TEST_KEY = 'pwa-test-mode';
 
 export function usePWAInstall(): PWAInstallState {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -82,8 +83,25 @@ export function usePWAInstall(): PWAInstallState {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
   }, []);
 
+  // Enable test mode via console: localStorage.setItem('pwa-test-mode', 'true')
+  const isTestMode = typeof window !== 'undefined' && localStorage.getItem(TEST_KEY) === 'true';
+
+  // Expose trigger for manual testing in console
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as Window & { triggerPWAInstall?: () => void }).triggerPWAInstall = () => {
+        const mockEvent = new Event('beforeinstallprompt') as BeforeInstallPromptEvent;
+        Object.defineProperty(mockEvent, 'platforms', { value: ['web'] });
+        Object.defineProperty(mockEvent, 'userChoice', { value: Promise.resolve({ outcome: 'accepted', platform: 'web' }) });
+        Object.defineProperty(mockEvent, 'prompt', { value: () => Promise.resolve() });
+        setDeferredPrompt(mockEvent);
+        localStorage.removeItem(DISMISS_KEY);
+      };
+    }
+  }, []);
+
   return {
-    isInstallable: !!deferredPrompt && !isInstalled && !isDismissed,
+    isInstallable: (!!deferredPrompt || isTestMode) && !isInstalled && !isDismissed,
     isInstalled,
     deferredPrompt,
     promptInstall,
